@@ -35,7 +35,7 @@ string LinuxParser::OperatingSystem() {
 
 // DONE: An example of how to read data from the filesystem
 string LinuxParser::Kernel() {
-  string os, version,  kernel;
+  string os, version, kernel;
   string line;
   std::ifstream stream(kProcDirectory + kVersionFilename);
   if (stream.is_open()) {
@@ -47,6 +47,7 @@ string LinuxParser::Kernel() {
 }
 
 // BONUS: Update this to use std::filesystem
+//  (!) requires update gcc to c++17
 vector<int> LinuxParser::Pids() {
   vector<int> pids;
   DIR* directory = opendir(kProcDirectory.c_str());
@@ -66,8 +67,55 @@ vector<int> LinuxParser::Pids() {
   return pids;
 }
 
-// TODO: Read and return the system memory utilization
-float LinuxParser::MemoryUtilization() { return 0.0; }
+// Helper function to read the tokens on files.
+inline string readToken(const string tokenName, const string &line )
+{
+  string key;
+  string value;
+  std::istringstream linestream(line);
+      linestream >> key >> value; // >> units; (kB)
+      if (key == tokenName) {
+        return value; 
+      }
+  return "";
+}
+
+
+// Read and return the system memory utilization
+float LinuxParser::MemoryUtilization() { 
+  float memtotal = 0.0, memfree = 0.0 ; //Unused: memavailable = -1, buffers = -1;
+  string line;
+  string key;
+  string value;
+
+  std::ifstream stream(kProcDirectory + kMeminfoFilename);
+  if (stream.is_open()) {
+    {
+      // 1st line expected MemTotal value.
+      std::getline(stream, line);
+      
+      std::istringstream linestream(line);
+      linestream >> key >> value; // >> units; (kB)
+      if (key == "MemTotal:") {
+      memtotal = stof(value); 
+       }
+      // Alternative: use a helper function. 
+      // It works but crashes when token is not found on line (or line is empty).
+      // string tokenValue = readToken("MemTotal:", line );
+      // memtotal = stof(tokenValue);
+    }
+    {
+      // 2nd line expected MemFree value.
+      std::getline(stream, line);
+      std::istringstream linestream(line);
+      linestream >> key >> value; // >> units; (kB)
+      if (key == "MemFree:") {
+        memfree = stof(value);
+      }
+    }
+  }
+  return (memtotal - memfree) / memtotal; 
+}
 
 // TODO: Read and return the system uptime
 long LinuxParser::UpTime() { return 0; }
