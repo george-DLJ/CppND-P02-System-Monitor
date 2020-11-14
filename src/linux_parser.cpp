@@ -35,7 +35,7 @@ string LinuxParser::OperatingSystem() {
 
 // DONE: An example of how to read data from the filesystem
 string LinuxParser::Kernel() {
-  string os, version,  kernel;
+  string os, version, kernel;
   string line;
   std::ifstream stream(kProcDirectory + kVersionFilename);
   if (stream.is_open()) {
@@ -47,6 +47,7 @@ string LinuxParser::Kernel() {
 }
 
 // BONUS: Update this to use std::filesystem
+//  (!) requires update gcc to c++17
 vector<int> LinuxParser::Pids() {
   vector<int> pids;
   DIR* directory = opendir(kProcDirectory.c_str());
@@ -66,11 +67,86 @@ vector<int> LinuxParser::Pids() {
   return pids;
 }
 
-// TODO: Read and return the system memory utilization
-float LinuxParser::MemoryUtilization() { return 0.0; }
 
-// TODO: Read and return the system uptime
-long LinuxParser::UpTime() { return 0; }
+/**
+ *  Helper function to read the tokens on files.
+ */
+inline string readToken(const string tokenName, const string &line )
+{
+  string key;
+  string value;
+  std::istringstream linestream(line);
+      linestream >> key >> value; // >> units; (kB)
+      if (key == tokenName) {
+        return value; 
+      }
+  return "";
+}
+
+
+/**
+ * Retrieves the system memory utilization.
+ * 
+ * This function uses /proc/meminfo to calculate the memory utilization. The 
+ * calculation is done using just MemTotal and Memfree parameters. 
+ */
+float LinuxParser::MemoryUtilization() { 
+  float memtotal = 0.0, memfree = 0.0 ; //Unused: memavailable = -1, buffers = -1;
+  string line;
+  string key;
+  string value;
+
+  std::ifstream stream(kProcDirectory + kMeminfoFilename);
+  if (stream.is_open()) {
+    {
+      // 1st line expected MemTotal value.
+      std::getline(stream, line);
+      
+      std::istringstream linestream(line);
+      linestream >> key >> value; // >> units; (kB)
+      if (key == "MemTotal:") {
+      memtotal = stof(value); 
+       }
+      // Alternative: use a helper function. 
+      // It works but crashes when token is not found on line (or line is empty).
+      // string tokenValue = readToken("MemTotal:", line );
+      // memtotal = stof(tokenValue);
+    }
+    {
+      // 2nd line expected MemFree value.
+      std::getline(stream, line);
+      std::istringstream linestream(line);
+      linestream >> key >> value; // >> units; (kB)
+      if (key == "MemFree:") {
+        memfree = stof(value);
+      }
+    }
+  }
+  return (memtotal - memfree) / memtotal; 
+}
+
+/**
+ * Read and return the system uptime
+ * 
+ * The information is gathered from /proc/uptime file which contains two values:
+ *  - the uptime of the system (including time spent in suspend) and 
+ *  - the amount of time spent in the idle process
+ * This file contains a single line.
+ */
+long int LinuxParser::UpTime() { 
+    long int uptimeValue = 0;
+    string line;
+    string uptimeStr;
+    std::ifstream stream(kProcDirectory + kUptimeFilename);
+    if (stream.is_open()) {
+      std::getline(stream, line);
+      std::istringstream linestream(line);
+      linestream >> uptimeStr;
+      uptimeValue = stol(uptimeStr);
+      return uptimeValue;
+    }
+    return uptimeValue;
+ }
 
 // TODO: Read and return the number of jiffies for the system
 long LinuxParser::Jiffies() { return 0; }
@@ -88,11 +164,50 @@ long LinuxParser::IdleJiffies() { return 0; }
 // TODO: Read and return CPU utilization
 vector<string> LinuxParser::CpuUtilization() { return {}; }
 
-// TODO: Read and return the total number of processes
-int LinuxParser::TotalProcesses() { return 0; }
+/** 
+ * Read and return the total number of processes
+ * 
+ * This  information can be found on /proc/stat file
+ * under the token 'processes'
+ * 
+ * This file contains multiple lines of information.
+ */ 
+int LinuxParser::TotalProcesses() { 
+  string line;
+  string key;
+  string value;
+  string uptime;
+  std::ifstream stream(kProcDirectory + kStatFilename);
+  if (stream.is_open()) {
+    while (std::getline(stream, line)) {
+      std::istringstream linestream(line);
+      linestream >> key >> value;
+      if (key == "processes") {
+        return stoi(value);
+      }
+    }
+  }
+  return 0; 
+}
 
 // TODO: Read and return the number of running processes
-int LinuxParser::RunningProcesses() { return 0; }
+int LinuxParser::RunningProcesses() { 
+  string line;
+  string key;
+  string value;
+  string uptime;
+  std::ifstream stream(kProcDirectory + kStatFilename);
+  if (stream.is_open()) {
+    while (std::getline(stream, line)) {
+      std::istringstream linestream(line);
+      linestream >> key >> value;
+      if (key == "procs_running") {
+        return stoi(value);
+      }
+    }
+  }
+  return 0; 
+}
 
 // TODO: Read and return the command associated with a process
 // REMOVE: [[maybe_unused]] once you define the function
