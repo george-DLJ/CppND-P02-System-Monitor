@@ -40,6 +40,17 @@ enum CPUStates {
   kGuest_,
   kGuestNice_
 };
+
+// PID-Stat tokens positions starting at 1.
+enum PidStat {
+  kPid = 1,
+  kutime = 14,
+  kstime ,
+  kcutime,
+  kcstime,
+  kstartime = 22,
+};
+
 std::vector<std::string> CpuUtilization();
 long Jiffies();
 long ActiveJiffies();
@@ -52,6 +63,9 @@ std::string Ram(int pid);
 std::string Uid(int pid);
 std::string User(int pid);
 long int UpTime(int pid);
+
+// custom helper functions
+std::string UserName(std::string uid);
 };  // namespace LinuxParser
 
 #endif

@@ -20,7 +20,39 @@ Processor& System::Cpu() {
 }
 
 // TODO: Return a container composed of the system's processes
-vector<Process>& System::Processes() { return processes_; }
+vector<Process>& System::Processes() { 
+    vector<int> pids {LinuxParser::Pids()};
+    // First approach: regenerate the processes_ vector each time.
+    processes_.clear();
+     // if there are still new pids, add to procesess_
+    for(int pid: pids){
+        Process newProcess(pid);
+        newProcess.User();
+        processes_.push_back(newProcess);
+    }
+
+    // Second Approach: 
+    //  1. Check first which processes are still active (in Pids() vector)
+    //  1.1 - update info of all processes that are in the pids list
+    //      - remove found process from pids list
+    //  1.2 erase Processes that are NOT on the list
+    //  2. if stille there are pids (new ones)
+    //  2.1 create new Process in processes_
+//    for(int i; i < processes_.size() ; ++i )
+//     {
+//         if find(proc.Pid(), pids)
+//         {   // remove pid from pids
+
+//             // update process data
+
+//         } else {
+//             // delete process -> proces may be ended; remove from list.
+//             processes_.erase(i);
+//         }
+//     }
+
+    return processes_; 
+}
 
 /**
  * Return the system's kernel identifier (string)
