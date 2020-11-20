@@ -13,10 +13,9 @@
  * This is not optimal, but has a more simple implementation.
  * 
  * Second Approach: 
- * Initialize once non-dynamic data like Kernel, OS vs. and store in fields
- * Update dynamic fields, like CPU, memory, processes, etc. once a timeout is 
- * due, e.g. once per second. Otherwise return stored values.
- * This will optimice the access to the system files.
+ * Initialize on constructor non-dynamic data like Kernel, OS.
+ * Update dynamic fields, like CPU, memory, processes, etc. using pass-through 
+ * strategy.
  */
 class System {
  public:
@@ -29,9 +28,6 @@ class System {
   int RunningProcesses();             // TODO: See src/system.cpp
   std::string Kernel();               // TODO: See src/system.cpp
   std::string OperatingSystem();      // TODO: See src/system.cpp
-
-  void PrintProcessesData(std::vector<Process> &processes); //TODO:REMOVE
-  void TestSortFunction();// TODO: REMOVE
 
  private:
   Processor cpu_ {}; 

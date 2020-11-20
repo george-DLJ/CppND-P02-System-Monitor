@@ -3,6 +3,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <iomanip> //to set stream float decimal precission.
 
 #include "process.h"
 #include "linux_parser.h"
@@ -12,25 +13,26 @@ using std::to_string;
 using std::vector;
 
 
- //const static long Process::kHertz = sysconf(_SC_CLK_TCK); //Static constant set at runtime: NOTE: const  makes sort fail
+const long Process::kHertz = sysconf(_SC_CLK_TCK); //Static constant set at runtime to avoid call sysconf on each tics calculation.
 
-// Constructor
-Process::Process(int pid) : pid_(pid), user_(""), command_(""), cpuUtilization_(0.0){
+/**
+ * Constructor overwritten we need to initialize pid and 
+ * at least cpuUtilization, in order to be able to sort the
+ * Processes.
+ */
+Process::Process(int pid) : pid_(pid){
     cpuUtilization_ = CpuUtilization();
 } 
 
 // Return this process's ID
-int Process::Pid() { 
-   
-    return pid_; 
-}
+int Process::Pid() { return pid_; }
 
 /**
  *  Return this process's CPU utilization
  */
 float Process::CpuUtilization() { 
-    long pidTotalTime = LinuxParser::ActiveJiffies(this->pid_)/sysconf(_SC_CLK_TCK); // unit: seconds
-    long pidStartTime = LinuxParser::UpTime(this->pid_)/sysconf(_SC_CLK_TCK); // unit: seconds
+    long pidTotalTime = LinuxParser::ActiveJiffies(this->pid_)/kHertz; // unit: seconds (after divide by kHertz)
+    long pidStartTime = LinuxParser::UpTime(this->pid_)/kHertz; // unit: seconds (after divide by kHertz)
     long systemUptime = LinuxParser::UpTime(); //unit: sytem uptime already in seconds
     return (float)pidTotalTime/(float)(systemUptime - pidStartTime);
 }
@@ -46,18 +48,27 @@ string Process::Command() {
 }
 
 /**
- * Return this process's memory utilization
+ * Return this process's memory utilization in MB!
+ * 
+ * NOTE: the display expects the data in MB. Therefore 
+ *       the parsed data is here converted to MB.
+ * 
+ * @return memory used by a process in MB.
  */ 
 string Process::Ram() { 
-    return LinuxParser::Ram(this->pid_);
+    // convert data to MB with one decimal:
+    std::stringstream stream;
+    stream << std::fixed << std::setprecision(1) << stof(LinuxParser::Ram(this->pid_)) / 1024.0;
+    //std::string s = stream.str(); 
+    return stream.str();
 }
 
-// DONE: Return the user (name) that generated this process
-// TODO: improve: return field data if initialized.
+/**
+ * DONE: Return the user (name) that generated this process
+ */ 
 string Process::User() { 
-    // if not set retrieve from parser.
     if(this->user_.empty()){
-        this->user_ =  LinuxParser::User(this->Pid()); //NOTE: (?) it is better access the field directly or use the accessor method?
+        this->user_ =  LinuxParser::User(this->Pid()); 
     }
     return this->user_;
 }
@@ -71,16 +82,13 @@ string Process::User() {
  */
 long int Process::UpTime() {
     long starttime = LinuxParser::UpTime(this->pid_);
-    long seconds = LinuxParser::UpTime() - (starttime / sysconf(_SC_CLK_TCK)); //NOTE: UpTime() without paramters returns system uptime.
+    long seconds = LinuxParser::UpTime() - (starttime / kHertz); //NOTE: UpTime() without paramters returns system uptime.
     return seconds; 
 }
 
 /**
  * Overload the "less than" comparison operator for Process objects
- *  TODO: CORRECT it does not sort properly
  */
 bool Process::operator<(const Process & other) const{ 
-    float ft = this->cpuUtilization_;
-    float fa = other.cpuUtilization_;
-    return this->cpuUtilization_< other.cpuUtilization_; //it doesn't order properly
+    return this->cpuUtilization_< other.cpuUtilization_; 
 }

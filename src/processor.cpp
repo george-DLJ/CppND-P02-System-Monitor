@@ -37,8 +37,6 @@ float Processor::Utilization() {
                     stof(cpuUtilization[CPUStates::kSoftIRQ_]) +
                     stof(cpuUtilization[CPUStates::kSteal_]);
         float total = idle + nonIdle;
-        //float CPU_Percentage = (total - idle) / total; // Basic Calculation (mean since cpu start.)
-        // advanced calculation:
         float totalDiff = total - prevTotal_;
         float idleDiff = idle - prevIdle_;
         float CPU_Percentage = (totalDiff - idleDiff) / totalDiff; // More dynamic Calculation (changes between cpu utilisation calls)
@@ -47,9 +45,8 @@ float Processor::Utilization() {
         return CPU_Percentage;
     }
     catch(const std::exception& e) {
-        std::cout << " a standard exception was caught, with message '"
+        std::cout << "ERROR calculatng CPU Utilization: "
                     << e.what() << "'\n";
-    }
-    
+    }   
     return 0.0; 
 }

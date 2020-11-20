@@ -10,7 +10,7 @@ using std::string;
 using std::to_string;
 using std::vector;
 
-// DONE: An example of how to read data from the filesystem
+//  An example of how to read data from the filesystem
 string LinuxParser::OperatingSystem() {
   string line;
   string key;
@@ -33,7 +33,7 @@ string LinuxParser::OperatingSystem() {
   return value;
 }
 
-// DONE: An example of how to read data from the filesystem
+// An example of how to read data from the filesystem
 string LinuxParser::Kernel() {
   string os, version, kernel;
   string line;
@@ -53,9 +53,7 @@ vector<int> LinuxParser::Pids() {
   DIR* directory = opendir(kProcDirectory.c_str());
   struct dirent* file;
   while ((file = readdir(directory)) != nullptr) {
-    // Is this a directory?
     if (file->d_type == DT_DIR) {
-      // Is every character of the name a digit?
       string filename(file->d_name);
       if (std::all_of(filename.begin(), filename.end(), isdigit)) {
         int pid = stoi(filename);
@@ -88,10 +86,12 @@ inline string readToken(const string tokenName, const string &line )
  * Retrieves the system memory utilization.
  * 
  * This function uses /proc/meminfo to calculate the memory utilization. The 
- * calculation is done using just MemTotal and Memfree parameters. 
+ * calculation is done using just MemTotal and Memfree parameters;  
+ * 
+ * NOTE: Unused memory fields: memavailable , buffers; 
  */
 float LinuxParser::MemoryUtilization() { 
-  float memtotal = 0.0, memfree = 0.0 ; //Unused: memavailable = -1, buffers = -1;
+  float memtotal = 0.0, memfree = 0.0 ;
   string line;
   string key;
   string value;
@@ -148,20 +148,24 @@ long int LinuxParser::UpTime() {
     return uptimeValue;
  }
 
-// TODO(?): Read and return the number of jiffies for the system
-//          I'm confused because the linux man says there are not 
-//          jiffies any more since Kernel 2.6 but clock tics
-// NOTE: I asume (system cpu) jiffies value is the sum of all values but guest.
-//         jiffies: user + nice + system + idle + io 
-//       from cpu line in /proc/stat file.        
-// see: https://man7.org/linux/man-pages/man5/proc.5.html
+/**
+ * Read and return the number of jiffies for the system
+ *          I'm confused because the linux man says there are not 
+ *          jiffies any more since Kernel 2.6 but clock tics
+ * NOTE: I asume (system cpu) jiffies value is the sum of all values but guest.
+ *         jiffies: user + nice + system + idle + io 
+ *       from cpu line in /proc/stat file.        
+ * see: https://man7.org/linux/man-pages/man5/proc.5.html
+ */ 
 long LinuxParser::Jiffies() { 
   return LinuxParser::ActiveJiffies() + LinuxParser::IdleJiffies(); 
 }
 
-// (?): Read and return the number of active jiffies for a PID
-// It is not clear if I should use just utime+ stime or als
-// add the children nodes (cutime + cstime) 
+/** 
+ * (?): Read and return the number of active jiffies for a PID
+ * It is not clear if I should use just utime+ stime or als
+ * add the children nodes (cutime + cstime) 
+ */
 long LinuxParser::ActiveJiffies(int pid) { 
   string line;
   string key;
@@ -173,8 +177,7 @@ long LinuxParser::ActiveJiffies(int pid) {
     long stime{0};
     long cutime{0};
     long cstime{0};
-    long activeJiffies {0};
-    // data is in a single line:
+
     std::getline(stream, line);
     std::istringstream linestream(line);
     int i = 1;
@@ -189,13 +192,9 @@ long LinuxParser::ActiveJiffies(int pid) {
         case LinuxParser::PidStat::kcutime:
           cutime = stol(token);
           break;
-          //activeJiffies +=  stol(token);
-        break;
         case LinuxParser::PidStat::kcstime: //this is the token with higher index: add to sum and return;
-          //activeJiffies +=  stol(token);
           cstime = stol(token);
-          activeJiffies = utime + stime + cutime + cstime; 
-          return activeJiffies;
+          return utime + stime + cutime + cstime; 
       }
       i++;
     }
@@ -204,7 +203,7 @@ long LinuxParser::ActiveJiffies(int pid) {
 }
 
 /** 
- * TODO: Read and return the number of active jiffies for the system
+ * Read and return the number of active jiffies for the system
  * 
  * NOTE: It is not clear on the project description und neither on linux man
  *      but I asume it is the cpu non-idle time from file /proc/stat:
@@ -225,6 +224,7 @@ long LinuxParser::ActiveJiffies() {
 
 /**
  * Read and return the number of idle jiffies for the system
+ * 
  * NOTE: It is not clear on the project description und neither on linux man
  *       how is this value calculated. I asume it is the cpu idle time from 
  *       file /proc/stat:
@@ -239,7 +239,9 @@ long LinuxParser::IdleJiffies() {
   return 0; 
 }
 
-// TODO: Read and return CPU utilization
+/**
+ *  Read and return CPU utilization
+ */
 vector<string> LinuxParser::CpuUtilization() { 
   string line;
   string cpuKey;
@@ -327,8 +329,10 @@ string LinuxParser::Command(int pid) {
 
 /**
  * Read and return the memory used by a process 
- * TODO: convert to MB?
  * 
+ * NOTE: this function returns the source Values that are in kB.
+ * 
+ * @return memory used by a process in kB.
  */
 string LinuxParser::Ram(int pid) { 
   string line;
@@ -340,8 +344,7 @@ string LinuxParser::Ram(int pid) {
       std::istringstream linestream(line);
       linestream >> key >> value;
       if (key == "VmSize:") {
-        //TODO: convert to MB(?)
-        return value;
+        return value; //unit: kB
       }
     }
   } 
