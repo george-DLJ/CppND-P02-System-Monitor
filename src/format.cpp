@@ -7,8 +7,8 @@
 using std::string;
 
 /** helper function to show seconds in  HH:MM:SS format
-/* @param seconds measuring seconds
-/* @return string with format HH:MM:SS
+ * @param seconds measuring seconds
+ * @return string with format HH:MM:SS
  */
 string Format::ElapsedTime(long seconds) {
     int ss = (int)seconds % 60; 
