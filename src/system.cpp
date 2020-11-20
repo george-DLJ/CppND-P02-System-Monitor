@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <iostream> //TEST ONLY TODO: remove
+
 #include "process.h"
 #include "processor.h"
 #include "system.h"
@@ -14,9 +16,14 @@ using std::size_t;
 using std::string;
 using std::vector;
 
-// TODO: Return the system's CPU
+// Return the system's CPU
 Processor& System::Cpu() { 
     return cpu_; 
+}
+
+System::System(){
+    kernel_ = LinuxParser::Kernel(); 
+    os_ = LinuxParser::OperatingSystem(); 
 }
 
 // TODO: Return a container composed of the system's processes
@@ -27,7 +34,7 @@ vector<Process>& System::Processes() {
      // if there are still new pids, add to procesess_
     for(int pid: pids){
         Process newProcess(pid);
-        newProcess.User();
+        float pidCpu = newProcess.cpuUtilization_;
         processes_.push_back(newProcess);
     }
 
@@ -51,15 +58,25 @@ vector<Process>& System::Processes() {
 //         }
 //     }
 
+    // Order processes by CPU use:
+    // NOTE: the vector should be ordered in descending order because we want the higher CPU usage first 
+    //       but we have implemented only operator< which orders the vector ascending and 
+    //       ncurses_display reads the vector from index 0. Therefore we need reorder the other way around.
+    // NOTE: use rbegin() and rend() to order the vector using reverse iterators. 
+    std::sort(processes_.rbegin(), processes_.rend());
+
     return processes_; 
 }
 
 /**
  * Return the system's kernel identifier (string)
- * DONE: (1) implement parser
- * TODO: (2) improve by creating an initializer function to parse the data only once.
+ *  
+ * Improved version: assumed Kernel doesn't changes, 
+ *           therefore, LinuxParser is used only on constructor.
  */ 
-std::string System::Kernel() { return LinuxParser::Kernel(); }
+std::string System::Kernel() { 
+    return kernel_; 
+}
 
 /**
  * Return the system's memory utilization
@@ -71,10 +88,12 @@ float System::MemoryUtilization() { return LinuxParser::MemoryUtilization(); }
 
 /**
  * Return the operating system name
- * DONE: (1) implement parser
- * TODO: (2) improve by creating an initializer function to parse the data only once.
+ * Improved version: assumed Kernel doesn't changes, 
+ *           therefore, LinuxParser is used only on constructor.
  */ 
-std::string System::OperatingSystem() { return LinuxParser::OperatingSystem(); }
+std::string System::OperatingSystem() { 
+    return os_;
+}
 
 /**
  * Return the number of processes actively running on the system
@@ -98,3 +117,37 @@ int System::TotalProcesses() { return LinuxParser::TotalProcesses(); }
  *  instead of consulting the system files each time.
  */ 
 long int System::UpTime() { return LinuxParser::UpTime(); }
+
+//TODO: REMOVE
+void System::TestSortFunction()
+{
+    std::vector<Process> processesList = {};
+    Process proc1(1);
+    proc1.cpuUtilization_ = 0.1;
+    processesList.push_back(proc1);
+
+    Process proc2(2);
+    proc2.cpuUtilization_ = 0.2;
+    processesList.push_back(proc2);
+
+    Process proc3(3);
+    proc3.cpuUtilization_ = 0.3;
+    processesList.push_back(proc3);
+
+    std::cout << "Input vector:\n";
+    PrintProcessesData(processesList);
+    std::sort(processesList.rbegin(), processesList.rend());
+
+    std::cout << "After Sort():\n";
+    PrintProcessesData(processesList);
+
+}
+
+//TODO: REMOVE
+void System::PrintProcessesData(std::vector<Process> &processes)
+{
+    for(Process p: processes)
+    {
+        std::cout << "  " << p.Pid() << "; " << p.cpuUtilization_ << "\n";
+    }
+}

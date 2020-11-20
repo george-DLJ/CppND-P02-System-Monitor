@@ -12,28 +12,37 @@ using std::to_string;
 using std::vector;
 
 
-const long Process::kHertz = sysconf(_SC_CLK_TCK); //Static constant set at runtime.
+ //const static long Process::kHertz = sysconf(_SC_CLK_TCK); //Static constant set at runtime: NOTE: const  makes sort fail
 
 // Constructor
-Process::Process(int pid) : pid_(pid), user_(""), command_(""){}
+Process::Process(int pid) : pid_(pid), user_(""), command_(""), cpuUtilization_(0.0){
+    cpuUtilization_ = CpuUtilization();
+} 
 
 // Return this process's ID
 int Process::Pid() { 
+   
     return pid_; 
 }
 
-// TODO: Return this process's CPU utilization
+/**
+ *  Return this process's CPU utilization
+ */
 float Process::CpuUtilization() { 
-    long pidTotalTime = LinuxParser::ActiveJiffies(this->pid_)/kHertz; // unit: seconds
-    long pidStartTime = LinuxParser::UpTime(this->pid_)/kHertz; // unit: seconds
-    long systemUptime = LinuxParser::UpTime(); //unit: seconds
+    long pidTotalTime = LinuxParser::ActiveJiffies(this->pid_)/sysconf(_SC_CLK_TCK); // unit: seconds
+    long pidStartTime = LinuxParser::UpTime(this->pid_)/sysconf(_SC_CLK_TCK); // unit: seconds
+    long systemUptime = LinuxParser::UpTime(); //unit: sytem uptime already in seconds
     return (float)pidTotalTime/(float)(systemUptime - pidStartTime);
 }
 
-// TODO: Return the command that generated this process
+/**
+ * Return the command that generated this process
+ */
 string Process::Command() { 
-    return LinuxParser::Command(this->pid_);
-    return string(); 
+    if(this->command_.empty()){
+        this->command_ = LinuxParser::Command(this->pid_);
+    }
+    return this->command_;
 }
 
 /**
@@ -47,10 +56,9 @@ string Process::Ram() {
 // TODO: improve: return field data if initialized.
 string Process::User() { 
     // if not set retrieve from parser.
-    if(this->user_ == string()){
-        return LinuxParser::User(this->Pid()); //NOTE: (?) it is better access the field directly or use the accessor method?
+    if(this->user_.empty()){
+        this->user_ =  LinuxParser::User(this->Pid()); //NOTE: (?) it is better access the field directly or use the accessor method?
     }
-    // otherwise return stored value.
     return this->user_;
 }
 
@@ -63,10 +71,16 @@ string Process::User() {
  */
 long int Process::UpTime() {
     long starttime = LinuxParser::UpTime(this->pid_);
-    long seconds = LinuxParser::UpTime() - (starttime / kHertz); //NOTE: UpTime() without paramters returns system uptime.
+    long seconds = LinuxParser::UpTime() - (starttime / sysconf(_SC_CLK_TCK)); //NOTE: UpTime() without paramters returns system uptime.
     return seconds; 
 }
 
-// TODO: Overload the "less than" comparison operator for Process objects
-// REMOVE: [[maybe_unused]] once you define the function
-bool Process::operator<(Process const& a[[maybe_unused]]) const { return true; }
+/**
+ * Overload the "less than" comparison operator for Process objects
+ *  TODO: CORRECT it does not sort properly
+ */
+bool Process::operator<(const Process & other) const{ 
+    float ft = this->cpuUtilization_;
+    float fa = other.cpuUtilization_;
+    return this->cpuUtilization_< other.cpuUtilization_; //it doesn't order properly
+}

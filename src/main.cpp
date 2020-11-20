@@ -3,5 +3,8 @@
 
 int main() {
   System system;
-  NCursesDisplay::Display(system);
+  NCursesDisplay::Display(system, 20);
+
+  // TESTS:
+  //system.TestSortFunction(); //TODO: Remove
 }
